@@ -8,16 +8,9 @@ if exist('MW1', 'class') ~= 8
     error('BCDCA:PlatEMONotOnPath', ...
         'Add the PlatEMO root and its subfolders to the MATLAB path first.');
 end
-assert(contains(which('BCDCOA_Revision'), sourceRoot), ...
-    'MATLAB resolved BCDCOA_Revision outside this package.');
-requiredClasses = {'FSBBR_Revision','FSBBR_Controller','BRACE','DRIFT', ...
-    'RIFT','SIFT','TIDE'};
-for i = 1:numel(requiredClasses)
-    resolvedPath = which(requiredClasses{i});
-    assert(~isempty(resolvedPath) && contains(resolvedPath, sourceRoot), ...
-        'MATLAB did not resolve %s from this package.', requiredClasses{i});
-end
-sourceText = fileread(which('BCDCOA_Revision'));
+assert(contains(which('BCDCA'), sourceRoot), ...
+    'MATLAB resolved BCDCA outside this package.');
+sourceText = fileread(which('BCDCA'));
 firstLine = regexp(sourceText, '\r?\n', 'split');
 assert(contains(firstLine{1}, '< ALGORITHM'), ...
     'PlatEMO GUI cannot identify the BCDCA entry class.');
@@ -30,7 +23,7 @@ end
 
 function runCase(problem, expectedMode)
 rng(1, 'twister');
-algorithm = BCDCOA_Revision('parameter', {0.30, 2, 0.25}, ...
+algorithm = BCDCA( ...
     'save', 0, 'outputFcn', @quietOutput);
 algorithm.Solve(problem);
 
@@ -39,9 +32,8 @@ assert(problem.FE >= problem.maxFE, 'The run stopped before maxFE.');
 assert(strcmp(algorithm.modeCode, expectedMode), ...
     'Expected mode %s, got %s.', expectedMode, algorithm.modeCode);
 assert(~isempty(trace), 'The algorithm produced no allocation trace.');
-assert(all([trace.variantCode] == 2), 'The run used an unexpected variant.');
-assert(all([trace.q] == [trace.scarcity]), ...
-    'Variant 2 did not use feasibility scarcity.');
+assert(all([trace.scarcity] == 1 - [trace.feasibleRate]), ...
+    'The allocation state does not match the measured feasible rate.');
 assert(all([trace.constraintCount] + [trace.relaxCount] == [trace.budget]), ...
     'A controlled offspring budget was not conserved.');
 
